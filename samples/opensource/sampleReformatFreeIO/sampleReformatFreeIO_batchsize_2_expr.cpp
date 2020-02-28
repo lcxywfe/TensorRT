@@ -1,17 +1,51 @@
+
 /*
- * Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
+ * Copyright 1993-2019 NVIDIA Corporation.  All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * NOTICE TO LICENSEE:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This source code and/or documentation ("Licensed Deliverables") are
+ * subject to NVIDIA intellectual property rights under U.S. and
+ * international Copyright laws.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * These Licensed Deliverables contained herein is PROPRIETARY and
+ * CONFIDENTIAL to NVIDIA and is being provided under the terms and
+ * conditions of a form of NVIDIA software license agreement by and
+ * between NVIDIA and Licensee ("License Agreement") or electronically
+ * accepted by Licensee.  Notwithstanding any terms or conditions to
+ * the contrary in the License Agreement, reproduction or disclosure
+ * of the Licensed Deliverables to any third party without the express
+ * written consent of NVIDIA is prohibited.
+ *
+ * NOTWITHSTANDING ANY TERMS OR CONDITIONS TO THE CONTRARY IN THE
+ * LICENSE AGREEMENT, NVIDIA MAKES NO REPRESENTATION ABOUT THE
+ * SUITABILITY OF THESE LICENSED DELIVERABLES FOR ANY PURPOSE.  IT IS
+ * PROVIDED "AS IS" WITHOUT EXPRESS OR IMPLIED WARRANTY OF ANY KIND.
+ * NVIDIA DISCLAIMS ALL WARRANTIES WITH REGARD TO THESE LICENSED
+ * DELIVERABLES, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY,
+ * NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
+ * NOTWITHSTANDING ANY TERMS OR CONDITIONS TO THE CONTRARY IN THE
+ * LICENSE AGREEMENT, IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, OR ANY
+ * DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ * WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+ * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+ * OF THESE LICENSED DELIVERABLES.
+ *
+ * U.S. Government End Users.  These Licensed Deliverables are a
+ * "commercial item" as that term is defined at 48 C.F.R. 2.101 (OCT
+ * 1995), consisting of "commercial computer software" and "commercial
+ * computer software documentation" as such terms are used in 48
+ * C.F.R. 12.212 (SEPT 1995) and is provided to the U.S. Government
+ * only as a commercial end item.  Consistent with 48 C.F.R.12.212 and
+ * 48 C.F.R. 227.7202-1 through 227.7202-4 (JUNE 1995), all
+ * U.S. Government End Users acquire the Licensed Deliverables with
+ * only those rights set forth herein.
+ *
+ * Any use of the Licensed Deliverables in individual and commercial
+ * software must include, in the user documentation and internal
+ * comments to the code, the above Disclaimer and U.S. Government End
+ * Users Notice.
  */
 
 //! \file SampleReformatFreeIO.cpp
@@ -40,11 +74,11 @@
 #include <iostream>
 #include <sstream>
 
-#include <array>
 #include <random>
-#include <string>
 #include <utility>
+#include <array>
 #include <vector>
+#include <string>
 
 const std::string gSampleName = "TensorRT.sample_reformat_free_io";
 
@@ -120,14 +154,8 @@ public:
 
     bool channelPivot = false;
 
-    int getElememtSize()
-    {
-        return dims[0] * dims[1] * dims[2] * dims[3];
-    }
-    int getBufferSize()
-    {
-        return getElememtSize() * dataWidth;
-    }
+    int getElememtSize() { return dims[0] * dims[1] * dims[2] * dims[3]; }
+    int getBufferSize() { return getElememtSize() * dataWidth; }
 };
 
 class SampleBuffer
@@ -141,10 +169,7 @@ public:
     }
 
     SampleBuffer(nvinfer1::Dims dims, int dataWidth, TensorFormat format)
-        : dims(dims)
-        , dataWidth(dataWidth)
-        , format(format)
-        , desc(dims, dataWidth, format)
+        : dims(dims), dataWidth(dataWidth), format(format), desc(dims, dataWidth, format)
     {
         if (nullptr == buffer)
         {
@@ -157,7 +182,7 @@ public:
         destroy();
     }
 
-    SampleBuffer& operator=(SampleBuffer&& sampleBuffer) noexcept
+    SampleBuffer & operator=(SampleBuffer && sampleBuffer) noexcept
     {
         destroy();
 
@@ -175,7 +200,7 @@ public:
     {
         if (buffer != nullptr)
         {
-            delete[] buffer;
+            delete [] buffer;
             buffer = nullptr;
         }
     }
@@ -188,12 +213,9 @@ public:
 
     BufferDesc desc;
 
-    uint8_t* buffer = nullptr;
+    uint8_t * buffer = nullptr;
 
-    int getBufferSize()
-    {
-        return desc.getBufferSize();
-    }
+    int getBufferSize() { return desc.getBufferSize() * 2; }
 };
 
 //!
@@ -220,7 +242,7 @@ public:
     //!
     //! \brief Runs the TensorRT inference engine for this sample
     //!
-    bool infer(SampleBuffer& inputBuf, SampleBuffer& outputBuf);
+    bool infer(SampleBuffer & inputBuf, SampleBuffer & outputBuf);
 
     //!
     //! \brief Used to clean up any state created in the sample class
@@ -240,25 +262,25 @@ public:
     //!
     //! \brief Reads the digit map from the file
     //!
-    bool readDigits(SampleBuffer& buffer, int groundTruthDigit);
+    bool readDigits(SampleBuffer & buffer, int groundTruthDigit);
 
     //!
     //! \brief Verifies that the output is correct and prints it
     //!
     template <typename T>
-    bool verifyOutput(SampleBuffer& outputBuf, int groundTruthDigit) const;
+    bool verifyOutput(SampleBuffer & outputBuf, int groundTruthDigit) const;
 
 private:
     //!
     //! \brief uses a Caffe parser to create the single layer Network and marks the
     //!        output layers
     //!
-    void constructNetwork(
-        SampleUniquePtr<nvcaffeparser1::ICaffeParser>& parser, SampleUniquePtr<nvinfer1::INetworkDefinition>& network);
+    void constructNetwork(SampleUniquePtr<nvcaffeparser1::ICaffeParser>& parser, SampleUniquePtr<nvinfer1::INetworkDefinition>& network);
 
     std::shared_ptr<nvinfer1::ICudaEngine> mEngine{nullptr}; //!< The TensorRT engine used to run the network
 
 public:
+
     samplesCommon::CaffeSampleParams mParams;
 
     nvinfer1::Dims mInputDims; //!< The dimensions of the input to the network.
@@ -311,7 +333,7 @@ bool SampleReformatFreeIO::build(int dataWidth)
     network->getInput(0)->setAllowedFormats(static_cast<TensorFormats>(1 << static_cast<int>(mTensorFormat)));
     network->getOutput(0)->setAllowedFormats(static_cast<TensorFormats>(1 << static_cast<int>(mTensorFormat)));
 
-    builder->setMaxBatchSize(1);
+    builder->setMaxBatchSize(5);
 
     mEngine.reset();
 
@@ -332,26 +354,7 @@ bool SampleReformatFreeIO::build(int dataWidth)
     config->setFlag(BuilderFlag::kGPU_FALLBACK);
     config->setFlag(BuilderFlag::kSTRICT_TYPES);
 
-    mEngine = std::shared_ptr<nvinfer1::ICudaEngine>(
-        builder->buildEngineWithConfig(*network, *config), samplesCommon::InferDeleter());
-    /*
-    std::vector<char> trtModelStream;
-    size_t size{0};
-    std::ifstream file("/root/TRT/TensorRT-6.0.1.5/data/mnist/mnist.engine", std::ios::binary);
-    if (file.good())
-    {
-        file.seekg(0, file.end);
-        size = file.tellg();
-        file.seekg(0, file.beg);
-        trtModelStream.resize(size);
-        file.read(trtModelStream.data(), size);
-        file.close();
-    }
-    IRuntime* infer = nvinfer1::createInferRuntime(gLogger.getTRTLogger());
-    mEngine = std::shared_ptr<nvinfer1::ICudaEngine>(
-        infer->deserializeCudaEngine(trtModelStream.data(), size, nullptr), samplesCommon::InferDeleter());
-    */
-
+    mEngine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildEngineWithConfig(*network, *config), samplesCommon::InferDeleter());
 
     if (!mEngine)
         return false;
@@ -371,11 +374,13 @@ bool SampleReformatFreeIO::build(int dataWidth)
 //! \brief Uses a caffe parser to create the single layer Network and marks the
 //!        output layers
 //!
-void SampleReformatFreeIO::constructNetwork(
-    SampleUniquePtr<nvcaffeparser1::ICaffeParser>& parser, SampleUniquePtr<nvinfer1::INetworkDefinition>& network)
+void SampleReformatFreeIO::constructNetwork(SampleUniquePtr<nvcaffeparser1::ICaffeParser>& parser, SampleUniquePtr<nvinfer1::INetworkDefinition>& network)
 {
     const nvcaffeparser1::IBlobNameToTensor* blobNameToTensor = parser->parse(
-        mParams.prototxtFileName.c_str(), mParams.weightsFileName.c_str(), *network, nvinfer1::DataType::kFLOAT);
+        mParams.prototxtFileName.c_str(),
+        mParams.weightsFileName.c_str(),
+        *network,
+        nvinfer1::DataType::kFLOAT);
 
     for (auto& s : mParams.outputTensorNames)
     {
@@ -384,26 +389,15 @@ void SampleReformatFreeIO::constructNetwork(
 
     nvinfer1::Dims inputDims = network->getInput(0)->getDimensions();
     // add mean subtraction to the beginning of the network
-    mMeanBlob
-        = SampleUniquePtr<nvcaffeparser1::IBinaryProtoBlob>(parser->parseBinaryProto(mParams.meanFileName.c_str()));
+    mMeanBlob = SampleUniquePtr<nvcaffeparser1::IBinaryProtoBlob>(parser->parseBinaryProto(mParams.meanFileName.c_str()));
     nvinfer1::Weights meanWeights{nvinfer1::DataType::kFLOAT, mMeanBlob->getData(), inputDims.d[1] * inputDims.d[2]};
     // For this sample, a large range based on the mean data is chosen and applied to the entire network.
     // The preferred method is use scales computed based on a representative data set
     // and apply each one individually based on the tensor. The range here is large enough for the
     // network, but is chosen for example purposes only.
-    float maxMean
-        = samplesCommon::getMaxValue(static_cast<const float*>(meanWeights.values), samplesCommon::volume(inputDims));
+    float maxMean = samplesCommon::getMaxValue(static_cast<const float*>(meanWeights.values), samplesCommon::volume(inputDims));
 
     auto mean = network->addConstant(nvinfer1::Dims3(1, inputDims.d[1], inputDims.d[2]), meanWeights);
-    /*
-    float* mm = new float(128);
-    nvinfer1::Weights meanWeights{nvinfer1::DataType::kFLOAT, (const void*)(mm), 1};
-
-    float maxMean = samplesCommon::getMaxValue(static_cast<const float*>(meanWeights.values), 1);
-
-    auto mean = network->addConstant(nvinfer1::Dims3(1, 1, 1), meanWeights);
-    */
-
     auto meanSub = network->addElementWise(*network->getInput(0), *mean->getOutput(0), ElementWiseOperation::kSUB);
     network->getLayer(0)->setInput(0, *meanSub->getOutput(0));
     samplesCommon::setAllTensorScales(network.get(), maxMean / maxMean * 128, 128);
@@ -415,7 +409,7 @@ void SampleReformatFreeIO::constructNetwork(
 //! \details This function is the main execution function of the sample. It allocates
 //!          the buffer, sets inputs, executes the engine, and verifies the output.
 //!
-bool SampleReformatFreeIO::infer(SampleBuffer& inputBuf, SampleBuffer& outputBuf)
+bool SampleReformatFreeIO::infer(SampleBuffer & inputBuf, SampleBuffer & outputBuf)
 {
     const auto devInput = mallocCudaMem<uint8_t>(inputBuf.getBufferSize());
     auto devOutput = mallocCudaMem<uint8_t>(outputBuf.getBufferSize());
@@ -435,7 +429,7 @@ bool SampleReformatFreeIO::infer(SampleBuffer& inputBuf, SampleBuffer& outputBuf
     void* bindings[2] = {devInput.get(), devOutput.get()};
 
     // Asynchronously enqueue the inference work
-    if (!context->enqueue(1, bindings, stream, nullptr))
+    if (!context->enqueue(2, bindings, stream, nullptr))
     {
         return false;
     }
@@ -466,15 +460,14 @@ bool SampleReformatFreeIO::teardown()
 //!
 //! \brief Reads the digit map from file
 //!
-bool SampleReformatFreeIO::readDigits(SampleBuffer& buffer, int groundTruthDigit)
+bool SampleReformatFreeIO::readDigits(SampleBuffer & buffer, int groundTruthDigit)
 {
     const int inputH = buffer.dims.d[1];
     const int inputW = buffer.dims.d[2];
 
     // Read a random digit file
     std::vector<uint8_t> fileData(inputH * inputW);
-    readPGMFile(
-        locateFile(std::to_string(groundTruthDigit) + ".pgm", mParams.dataDirs), fileData.data(), inputH, inputW);
+    readPGMFile(locateFile(std::to_string(groundTruthDigit) + ".pgm", mParams.dataDirs), fileData.data(), inputH, inputW);
 
     // Print ASCII representation of digit
     gLogInfo << "Input:\n";
@@ -484,11 +477,27 @@ bool SampleReformatFreeIO::readDigits(SampleBuffer& buffer, int groundTruthDigit
     }
     gLogInfo << std::endl;
 
+    std::vector<uint8_t> fileData2(inputH * inputW);
+    readPGMFile(locateFile(std::to_string(groundTruthDigit + 1) + ".pgm", mParams.dataDirs), fileData2.data(), inputH, inputW);
+
+    // Print ASCII representation of digit
+    gLogInfo << "Input:\n";
+    for (int i = 0; i < inputH * inputW; i++)
+    {
+        gLogInfo << (" .:-=+*#%@"[fileData2[i] / 26]) << (((i + 1) % inputW) ? "" : "\n");
+    }
+    gLogInfo << std::endl;
+
+
     float* inputBuf = reinterpret_cast<float*>(buffer.buffer);
 
     for (int i = 0; i < inputH * inputW; i++)
     {
         inputBuf[i] = float(fileData[i]);
+    }
+    for (int i = 0; i < inputH * inputW; i++)
+    {
+        inputBuf[i + inputH * inputW] = float(fileData2[i]);
     }
 
     return true;
@@ -498,7 +507,7 @@ bool SampleReformatFreeIO::readDigits(SampleBuffer& buffer, int groundTruthDigit
 //! \brief Verifies that the output is correct and prints it
 //!
 template <typename T>
-bool SampleReformatFreeIO::verifyOutput(SampleBuffer& outputBuf, int groundTruthDigit) const
+bool SampleReformatFreeIO::verifyOutput(SampleBuffer & outputBuf, int groundTruthDigit) const
 {
     const T* prob = reinterpret_cast<const T*>(outputBuf.buffer);
 
@@ -522,22 +531,42 @@ bool SampleReformatFreeIO::verifyOutput(SampleBuffer& outputBuf, int groundTruth
     }
     gLogInfo << std::endl;
 
-    return (idx == groundTruthDigit && val > 0.9f);
+    float val2{0.0f};
+    int idx2{0};
+    for (int i = 0; i < kDIGITS; i++)
+    {
+        elem = static_cast<float>(prob[i + 10]);
+        if (val2 < elem)
+        {
+            val2 = elem;
+            idx2 = i;
+        }
+
+        gLogInfo << i << ": " << std::string(int(std::floor(elem * 10 + 0.5f)), '*') << "\n";
+    }
+    gLogInfo << std::endl;
+
+
+    return (idx == groundTruthDigit && val > 0.9f) && (idx2 == idx + 1 && val2 > 0.9f);
 }
 
-int calcIndex(SampleBuffer& buffer, int c, int h, int w)
+int calcIndex(SampleBuffer & buffer, int c, int h, int w)
 {
     int index;
 
     if (!buffer.desc.channelPivot)
     {
         index = c / buffer.desc.dims[3] * buffer.desc.dims[1] * buffer.desc.dims[2] * buffer.desc.dims[3]
-            + h * buffer.desc.dims[2] * buffer.desc.dims[3] + w * buffer.desc.dims[3] + c % buffer.desc.dims[3];
+                + h * buffer.desc.dims[2] * buffer.desc.dims[3]
+                + w * buffer.desc.dims[3]
+                + c % buffer.desc.dims[3];
     }
     else
     {
-        index = h * buffer.desc.dims[2] * buffer.desc.dims[1] + w * buffer.desc.dims[2]
-            + c / buffer.desc.scalarPerVector * buffer.desc.scalarPerVector + c % buffer.desc.scalarPerVector;
+        index = h * buffer.desc.dims[2] * buffer.desc.dims[1]
+                + w * buffer.desc.dims[2]
+                + c / buffer.desc.scalarPerVector * buffer.desc.scalarPerVector
+                + c % buffer.desc.scalarPerVector;
     }
 
     return index;
@@ -547,7 +576,7 @@ int calcIndex(SampleBuffer& buffer, int c, int h, int w)
 //! \brief Reformats the buffer. Src and dst buffers should be of same datatype and dims.
 //!
 template <typename T>
-void reformat(SampleBuffer& src, SampleBuffer& dst)
+void reformat(SampleBuffer & src, SampleBuffer & dst)
 {
     if (src.format == dst.format)
     {
@@ -572,15 +601,16 @@ void reformat(SampleBuffer& src, SampleBuffer& dst)
             }
         }
     }
+
 }
 
 template <typename T>
-void convertGoldenData(SampleBuffer& goldenInput, SampleBuffer& dstInput)
+void convertGoldenData(SampleBuffer & goldenInput, SampleBuffer & dstInput)
 {
     SampleBuffer tmpBuf(goldenInput.dims, sizeof(T), goldenInput.format);
 
-    float* golden = reinterpret_cast<float*>(goldenInput.buffer);
-    T* tmp = reinterpret_cast<T*>(tmpBuf.buffer);
+    float * golden = reinterpret_cast<float*>(goldenInput.buffer);
+    T * tmp = reinterpret_cast<T*>(tmpBuf.buffer);
 
     for (int i = 0; i < goldenInput.desc.getElememtSize(); i++)
     {
@@ -600,11 +630,11 @@ void convertGoldenData(SampleBuffer& goldenInput, SampleBuffer& dstInput)
 //!
 //! \brief Used to randomly initialize buffers
 //!
-void randomInitBuff(SampleBuffer& buffer)
+void randomInitBuff(SampleBuffer & buffer)
 {
     srand(time(NULL));
 
-    float* tmpBuf = reinterpret_cast<float*>(buffer.buffer);
+    float * tmpBuf = reinterpret_cast<float*>(buffer.buffer);
 
     for (int i = 0; i < buffer.getBufferSize() / buffer.dataWidth; i++)
     {
@@ -643,24 +673,19 @@ samplesCommon::CaffeSampleParams initializeSampleParams(const samplesCommon::Arg
 //!
 void printHelpInfo()
 {
-    std::cout << "Usage: ./sample_reformat_free_io [-h or --help] [-d or --datadir=<path to data directory>] "
-                 "[--useDLACore=<int>]\n";
+    std::cout << "Usage: ./sample_reformat_free_io [-h or --help] [-d or --datadir=<path to data directory>] [--useDLACore=<int>]\n";
     std::cout << "--help          Display help information\n";
-    std::cout << "--datadir       Specify path to a data directory, overriding the default. This option can be used "
-                 "multiple times to add multiple directories. If no data directories are given, the default is to use "
-                 "data/samples/googlenet/ and data/googlenet/"
-              << std::endl;
-    std::cout << "--useDLACore=N  Specify a DLA engine for layers that support DLA. Value can range from 0 to n-1, "
-                 "where n is the number of DLA engines on the platform."
-              << std::endl;
+    std::cout << "--datadir       Specify path to a data directory, overriding the default. This option can be used multiple times to add multiple directories. If no data directories are given, the default is to use data/samples/googlenet/ and data/googlenet/" << std::endl;
+    std::cout << "--useDLACore=N  Specify a DLA engine for layers that support DLA. Value can range from 0 to n-1, where n is the number of DLA engines on the platform." << std::endl;
 }
 
 //!
 //! \brief Used to run the engine build and inference/reference functions
 //!
 template <typename T>
-int process(SampleReformatFreeIO& sample, const Logger::TestAtom& sampleTest, SampleBuffer& inputBuf,
-    SampleBuffer& outputBuf, SampleBuffer& goldenInput, SampleBuffer& goldenOutput)
+int process(SampleReformatFreeIO & sample, const Logger::TestAtom & sampleTest,
+    SampleBuffer & inputBuf, SampleBuffer & outputBuf,
+    SampleBuffer & goldenInput, SampleBuffer & goldenOutput)
 {
     gLogInfo << "Building and running a GPU inference engine for reformat free I/O" << std::endl;
 
@@ -691,8 +716,8 @@ int process(SampleReformatFreeIO& sample, const Logger::TestAtom& sampleTest, Sa
     return 0;
 }
 
-int runFP32Reference(SampleReformatFreeIO& sample, const Logger::TestAtom& sampleTest, SampleBuffer& goldenInput,
-    SampleBuffer& goldenOutput)
+int runFP32Reference(SampleReformatFreeIO & sample, const Logger::TestAtom & sampleTest,
+    SampleBuffer & goldenInput, SampleBuffer & goldenOutput)
 {
     gLogInfo << "Building and running a FP32 GPU inference to get golden input/output" << std::endl;
 
@@ -701,7 +726,7 @@ int runFP32Reference(SampleReformatFreeIO& sample, const Logger::TestAtom& sampl
         return gLogger.reportFail(sampleTest);
     }
 
-    goldenInput = SampleBuffer(sample.mInputDims, sizeof(float), TensorFormat::kLINEAR);
+    goldenInput  = SampleBuffer(sample.mInputDims, sizeof(float), TensorFormat::kLINEAR);
     goldenOutput = SampleBuffer(sample.mOutputDims, sizeof(float), TensorFormat::kLINEAR);
 
     // randomInitBuff(goldenInput);
@@ -742,50 +767,50 @@ int main(int argc, char** argv)
 
     samplesCommon::CaffeSampleParams params = initializeSampleParams(args);
 
-    std::vector<std::pair<TensorFormat, std::string>> vecFP16TensorFmt = {
-        std::make_pair(TensorFormat::kLINEAR, "kLINEAR"),
-        std::make_pair(TensorFormat::kCHW2, "kCHW2"),
-        std::make_pair(TensorFormat::kHWC8, "kHWC8"),
-    };
-    std::vector<std::pair<TensorFormat, std::string>> vecINT8TensorFmt = {
-        std::make_pair(TensorFormat::kLINEAR, "kLINEAR"),
-        std::make_pair(TensorFormat::kCHW4, "kCHW4"),
-        std::make_pair(TensorFormat::kCHW32, "kCHW32"),
-    };
+    std::vector<std::pair<TensorFormat, std::string>> vecFP16TensorFmt =
+        {
+            std::make_pair(TensorFormat::kLINEAR, "kLINEAR"),
+            std::make_pair(TensorFormat::kCHW2, "kCHW2"),
+            std::make_pair(TensorFormat::kHWC8, "kHWC8"),
+        };
+    std::vector<std::pair<TensorFormat, std::string>> vecINT8TensorFmt =
+        {
+            std::make_pair(TensorFormat::kLINEAR, "kLINEAR"),
+            std::make_pair(TensorFormat::kCHW4, "kCHW4"),
+            std::make_pair(TensorFormat::kCHW32, "kCHW32"),
+        };
 
     SampleBuffer goldenInput, goldenOutput;
 
     SampleReformatFreeIO sample(params);
 
     srand(unsigned(time(nullptr)));
-    sample.mDigit = rand() % 10;
+    sample.mDigit = rand() % 9;
 
     gLogInfo << "The test chooses MNIST as the network and recognizes a randomly generated digit" << std::endl;
-    gLogInfo << "Firstly it runs the FP32 as the golden data, then INT8/FP16 with different formats will be tested"
-             << std::endl
-             << std::endl;
+    gLogInfo << "Firstly it runs the FP32 as the golden data, then INT8/FP16 with different formats will be tested" << std::endl << std::endl;
 
     runFP32Reference(sample, sampleTest, goldenInput, goldenOutput);
 
     // Test INT8 formats
-    for (auto elem : vecINT8TensorFmt)
-    {
-        gLogInfo << "Testing datatype INT8 with format " << elem.second << std::endl;
-        sample.mTensorFormat = elem.first;
-        SampleBuffer inputBuf, outputBuf;
+    // for (auto elem : vecINT8TensorFmt)
+    // {
+    //     gLogInfo << "Testing datatype INT8 with format " << elem.second << std::endl;
+    //     sample.mTensorFormat = elem.first;
+    //     SampleBuffer inputBuf, outputBuf;
 
-        process<int8_t>(sample, sampleTest, inputBuf, outputBuf, goldenInput, goldenOutput);
-    }
+    //     process<int8_t>(sample, sampleTest, inputBuf, outputBuf, goldenInput, goldenOutput);
+    // }
 
     // Test FP16 formats
-    for (auto elem : vecFP16TensorFmt)
-    {
-        gLogInfo << "Testing datatype FP16 with format " << elem.second << std::endl;
-        sample.mTensorFormat = elem.first;
-        SampleBuffer inputBuf, outputBuf;
+    // for (auto elem : vecFP16TensorFmt)
+    // {
+    //     gLogInfo << "Testing datatype FP16 with format " << elem.second << std::endl;
+    //     sample.mTensorFormat = elem.first;
+    //     SampleBuffer inputBuf, outputBuf;
 
-        process<half_float::half>(sample, sampleTest, inputBuf, outputBuf, goldenInput, goldenOutput);
-    }
+    //     process<half_float::half>(sample, sampleTest, inputBuf, outputBuf, goldenInput, goldenOutput);
+    // }
 
     if (!sample.teardown())
     {
