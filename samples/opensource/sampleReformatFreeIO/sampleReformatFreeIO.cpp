@@ -767,6 +767,7 @@ int main(int argc, char** argv)
 
     runFP32Reference(sample, sampleTest, goldenInput, goldenOutput);
 
+    /*
     // Test INT8 formats
     for (auto elem : vecINT8TensorFmt)
     {
@@ -786,6 +787,7 @@ int main(int argc, char** argv)
 
         process<half_float::half>(sample, sampleTest, inputBuf, outputBuf, goldenInput, goldenOutput);
     }
+    */
 
     if (!sample.teardown())
     {
