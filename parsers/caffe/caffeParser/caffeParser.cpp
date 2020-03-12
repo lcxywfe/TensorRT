@@ -622,6 +622,53 @@ const IBlobNameToTensor* CaffeParser::parse(INetworkDefinition& network,
             continue;
         }
 
+        if (layerMsg.type() == "Slice") {
+            if (layerMsg.bottom_size() != 1) {
+                RETURN_AND_LOG_ERROR(nullptr, "error parsing Slice layer, only supports 1 bottom");
+            }
+            const trtcaffe::SliceParameter& p = layerMsg.slice_param();
+            int axis = 0;
+            if (p.has_slice_dim() && p.has_axis()) {
+                RETURN_AND_LOG_ERROR(nullptr, "error parsing Slice layer, slice_dim and axis could not be set at same time");
+            }
+            if (p.has_slice_dim())
+                axis = p.slice_dim() - 1;
+            if (p.has_axis())
+                axis = p.axis() - 1;
+
+            auto bottom_dims = (*mBlobNameToTensor)[layerMsg.bottom(0)]->getDimensions();
+            if (bottom_dims.nbDims != 3) {
+                RETURN_AND_LOG_ERROR(nullptr, "error parsing Slice layer, only support 3 dims");
+            }
+
+            std::vector<int> slice_points(0);
+            slice_points.push_back(0);
+            if (p.slice_point_size() == 0) {
+                if (bottom_dims.d[axis] % layerMsg.top_size() != 0) {
+                    RETURN_AND_LOG_ERROR(nullptr, "error parsing Slice layer, axis dim must be divisible by top size if there is no slice point provided");
+                }
+                for (int i = 0; i < layerMsg.top_size(); ++i)
+                    slice_points.push_back(slice_points.back() + bottom_dims.d[axis] / layerMsg.top_size());
+            } else {
+                for (int i = 0; i < p.slice_point_size(); ++i)
+                    slice_points.push_back(p.slice_point(i));
+                slice_points.push_back(bottom_dims.d[axis]);
+            }
+
+            if (layerMsg.top_size() != slice_points.size() - 1) {
+                RETURN_AND_LOG_ERROR(nullptr, "error parsing Slice layer, parse slice point error");
+            }
+
+            for (int i = 0; i < slice_points.size() - 1; ++i) {
+                nvinfer1::Dims3 start{0, 0, 0}, size{bottom_dims.d[0], bottom_dims.d[1], bottom_dims.d[2]}, stride{1, 1, 1};
+                start.d[axis] = slice_points[i];
+                size.d[axis] = slice_points[i + 1] - slice_points[i];
+                auto slice = network.addSlice(*((*mBlobNameToTensor)[layerMsg.bottom(0)]), start, size, stride);
+                (*mBlobNameToTensor)[layerMsg.top(i)] = slice->getOutput(0);
+            }
+            continue;
+        }
+
         // Use parser table to lookup the corresponding parse function to handle the rest of the layers
         auto v = gParseTable.find(layerMsg.type());
 
