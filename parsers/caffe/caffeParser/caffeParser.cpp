@@ -75,13 +75,21 @@ std::vector<nvinfer1::PluginField> CaffeParser::parseNormalizeParam(const trtcaf
         w = weightFactory.getAllWeights(msg.name());
     }
 
-    for (auto weight : w)
-    {
-        f.emplace_back("weights", weight.values, PluginFieldType::kFLOAT32, weight.count);
+    int* nbWeights = allocMemory<int32_t>();
+
+    if (w.size()) {
+        for (auto weight : w) {
+            f.emplace_back("weights", weight.values, PluginFieldType::kFLOAT32, weight.count);
+        }
+        *nbWeights = w.size();
+    } else {
+        assert(*channelShared);
+        float* value = allocMemory<float>();
+        *value = 1.0;
+        f.emplace_back("weights", value, PluginFieldType::kFLOAT32, 1);
+        *nbWeights = 1;
     }
 
-    int* nbWeights = allocMemory<int32_t>();
-    *nbWeights = w.size();
     f.emplace_back("nbWeights", nbWeights, PluginFieldType::kINT32, 1);
 
     return f;
