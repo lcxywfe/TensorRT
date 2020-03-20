@@ -484,6 +484,7 @@ message LayerParameter {
   optional ReductionParameter reduction_param = 136;
   optional ReLUParameter relu_param = 123;
   optional ReshapeParameter reshape_param = 133;
+  optional LabelInterpParameter label_interp_param = 151;
   optional ScaleParameter scale_param = 142;
   optional SigmoidParameter sigmoid_param = 124;
   optional SoftmaxParameter softmax_param = 125;
@@ -919,6 +920,15 @@ message ResizeParameter {
   }
   //interpolation for for resizing
   repeated Interp_mode interp_mode = 7;
+}
+
+message LabelInterpParameter {
+    optional uint32 rows = 1;
+    optional uint32 cols = 2;
+    optional int32 zoom_factor = 3 [default = 1]; // zoom factor
+    optional int32 shrink_factor = 4 [default = 1]; // shrink factor
+    optional string method = 5 [default = "nearest"]; // nearest, bilinear, cubic
+    optional bool is_prob = 6 [default = false]; // if true, interped result are bined to [0,1]
 }
 
 message NonMaximumSuppressionParameter {

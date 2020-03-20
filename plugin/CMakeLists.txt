@@ -50,6 +50,7 @@ set(PLUGIN_LISTS
     resizeNearestPlugin
     specialSlicePlugin
     instanceNormalizationPlugin
+    labelInterpPlugin
     )
 
 include_directories(common common/kernels)
