@@ -66,6 +66,7 @@ private:
     std::vector<nvinfer1::PluginField> parseDetectionOutputParam(const trtcaffe::LayerParameter& msg, CaffeWeightFactory& weightFactory, BlobNameToTensor& tensors);
     std::vector<nvinfer1::PluginField> parseLReLUParam(const trtcaffe::LayerParameter& msg, CaffeWeightFactory& weightFactory, BlobNameToTensor& tensors);
     std::vector<nvinfer1::PluginField> parseRPROIParam(const trtcaffe::LayerParameter& msg, CaffeWeightFactory& weightFactory, BlobNameToTensor& tensors);
+    std::vector<nvinfer1::PluginField> parseLabelInterpParam(const trtcaffe::LayerParameter& msg);
     template <typename T>
     T* allocMemory(int size = 1)
     {
