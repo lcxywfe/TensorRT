@@ -634,7 +634,7 @@ const IBlobNameToTensor* CaffeParser::parse(INetworkDefinition& network,
                         std::cout << "Warning, setting batch size to 1. Update the dimension after parsing due to "
                                      "using explicit batch size."
                                   << std::endl;
-                        d = DimsNCHW{1, (int) shape.dim().Get(1), (int) shape.dim().Get(2), (int) shape.dim().Get(3)};
+                        d = DimsNCHW{1, (int) shape.dim().Get(1), -1, -1};
                     }
                     ITensor* tensor = network.addInput(layerMsg.top(i).c_str(), DataType::kFLOAT, d);
                     (*mBlobNameToTensor)[layerMsg.top().Get(i)] = tensor;
