@@ -210,4 +210,7 @@ int proposalInference_gpu(cudaStream_t stream, const void* rpn_prob, const void*
 
 size_t _get_workspace_size(int N, int anc_size_num, int anc_ratio_num, int H, int W, int nmsMaxOut);
 
+void resize_cubic(const float* src, float* dst, const size_t src_rows, const size_t src_cols, const size_t dst_rows,
+    const size_t dst_cols, const size_t src_step, const size_t dst_step, void* workspace, cudaStream_t stream);
+
 #endif

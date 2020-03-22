@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "kernel.h"
 #include "labelInterpPlugin.h"
 #include <stdexcept>
 
@@ -82,6 +83,30 @@ void LabelInterpPlugin::terminate() {}
 size_t LabelInterpPlugin::getWorkspaceSize(const nvinfer1::PluginTensorDesc* inputs, int nbInputs,
     const nvinfer1::PluginTensorDesc* outputs, int nbOutputs) const
 {
+    ASSERT(nbInputs == 2 && inputs[0].dims.nbDims == 4 && inputs[1].dims.nbDims == 4);
+
+    size_t src_rows = inputs[0].dims.d[2];
+    size_t dst_rows = inputs[1].dims.d[2];
+    size_t src_cols = inputs[0].dims.d[3];
+    size_t dst_cols = inputs[1].dims.d[3];
+
+    size_t dst_area_size = dst_rows * dst_cols;
+    size_t src_area_size = src_rows * src_cols;
+
+    bool enlarge = dst_area_size > src_area_size;
+    bool shrink = dst_area_size <= src_area_size;
+
+    bool use_vector = (enlarge && (dst_area_size <= 500 * 500)) ||
+                      (shrink && (dst_area_size <= 1000 * 1000));
+
+    if (!use_vector) {
+        int coef_size = 4;
+
+        return dst_rows * coef_size * sizeof(float) +  //! dev_coef_row
+               dst_rows * sizeof(int) +                //! dev_sr
+               dst_cols * coef_size * sizeof(float) +  //! dev_coef_col
+               dst_cols * sizeof(int);                 //! dev_sc
+    }
     return 0;
 }
 
@@ -89,7 +114,29 @@ int LabelInterpPlugin::enqueue(const nvinfer1::PluginTensorDesc* inputDesc,
     const nvinfer1::PluginTensorDesc* outputDesc, const void* const* inputs, void* const* outputs, void* workspace,
     cudaStream_t stream)
 {
+    ASSERT(inputDesc[0].dims.nbDims == 4 && inputDesc[1].dims.nbDims == 4);
+    ASSERT(outputDesc[0].dims.nbDims == 4);
+    ASSERT(inputDesc[1].dims.d[2] == outputDesc[0].dims.d[2] && inputDesc[1].dims.d[3] == outputDesc[0].dims.d[3]);
 
+    int BATCH = inputDesc[0].dims.d[0];
+    int C = inputDesc[0].dims.d[1];
+    int IH = inputDesc[0].dims.d[2];
+    int IW = inputDesc[0].dims.d[3];
+    int OH = outputDesc[0].dims.d[2];
+    int OW = outputDesc[0].dims.d[3];
+
+    for (int batch = 0; batch < BATCH; ++batch) {
+        for (int c = 0; c < C; ++c) {
+            auto diff_in = batch * C * IH * IW + c * IH * IW;
+            auto diff_out = batch * C * OH * OW + c * OH * OW;
+
+            const float* src =
+                    static_cast<const float* const>(inputs[0]) + diff_in;
+            float* dst = static_cast<float*>(outputs[0]) + diff_out;
+            resize_cubic(src, dst, IH, IW, OH, OW, IW, OW, workspace,
+                         stream);
+        }
+    }
     return 0;
 }
 
@@ -161,14 +208,7 @@ void LabelInterpPlugin::detachFromContext() {}
 void LabelInterpPlugin::configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in, int nbInputs,
     const nvinfer1::DynamicPluginTensorDesc* out, int nbOutputs)
 {
-    for (int i = 0; i < nbInputs; i++)
-    {
-        for (int j = 0; j < in[i].desc.dims.nbDims; j++)
-        {
-            // Do not support dynamic dimensions
-            ASSERT(in[i].desc.dims.d[j] != -1);
-        }
-    }
+
 }
 
 // =========================LabelInterpPluginCreator============================

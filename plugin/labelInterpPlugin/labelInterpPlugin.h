@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef TRT_CAFFE_RESIZE_PLUGIN_H
-#define TRT_CAFFE_RESIZE_PLUGIN_H
+#ifndef TRT_LABEL_INTERP_PLUGIN_H
+#define TRT_LABEL_INTERP_PLUGIN_H
 #include "plugin.h"
 #include "serialize.hpp"
 #include <cudnn.h>
@@ -113,4 +113,4 @@ private:
 } // namespace plugin
 } // namespace nvinfer1
 
-#endif // TRT_CAFFE_RESIZE_PLUGIN_H
+#endif // TRT_LABEL_INTERP_PLUGIN_H
