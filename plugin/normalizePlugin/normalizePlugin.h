@@ -27,13 +27,10 @@ namespace nvinfer1
 namespace plugin
 {
 
-class Normalize : public IPluginV2Ext
+class Normalize : public IPluginV2DynamicExt
 {
 public:
     Normalize(const Weights* weights, int nbWeights, bool acrossSpatial, bool channelShared, float eps);
-
-    Normalize(
-        const Weights* weights, int nbWeights, bool acrossSpatial, bool channelShared, float eps, int C, int H, int W);
 
     Normalize(const void* buffer, size_t length);
 
@@ -41,22 +38,24 @@ public:
 
     int getNbOutputs() const override;
 
-    Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) override;
+    DimsExprs getOutputDimensions(int index, const DimsExprs* inputs, int nbInputDims, IExprBuilder& exprBuilder) override;
 
     int initialize() override;
 
     void terminate() override;
 
-    size_t getWorkspaceSize(int maxBatchSize) const override;
+    size_t getWorkspaceSize(const nvinfer1::PluginTensorDesc* inputs, int nbInputs,
+        const nvinfer1::PluginTensorDesc* outputs, int nbOutputs) const override;
 
-    int enqueue(
-        int batchSize, const void* const* inputs, void** outputs, void* workspace, cudaStream_t stream) override;
+    int enqueue(const nvinfer1::PluginTensorDesc* inputDesc, const nvinfer1::PluginTensorDesc* outputDesc,
+        const void* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) override;
 
     size_t getSerializationSize() const override;
 
     void serialize(void* buffer) const override;
 
-    bool supportsFormat(DataType type, PluginFormat format) const override;
+    bool supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) override;
 
     const char* getPluginType() const override;
 
@@ -64,7 +63,7 @@ public:
 
     void destroy() override;
 
-    IPluginV2Ext* clone() const override;
+    IPluginV2DynamicExt* clone() const override;
 
     void setPluginNamespace(const char* pluginNamespace) override;
 
@@ -72,16 +71,11 @@ public:
 
     DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes, int nbInputs) const override;
 
-    bool isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const override;
-
-    bool canBroadcastInputAcrossBatch(int inputIndex) const override;
-
     void attachToContext(
         cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) override;
 
-    void configurePlugin(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
-        const DataType* inputTypes, const DataType* outputTypes, const bool* inputIsBroadcast,
-        const bool* outputIsBroadcast, PluginFormat floatFormat, int maxBatchSize) override;
+    void configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in, int nbInputs,
+        const nvinfer1::DynamicPluginTensorDesc* out, int nbOutputs) override;
 
     void detachFromContext() override;
 
@@ -92,9 +86,6 @@ private:
 
     cublasHandle_t mCublas{};
 
-    int C{};
-    int H{};
-    int W{};
     int mNbWeights{};
     bool acrossSpatial{};
     bool channelShared{};

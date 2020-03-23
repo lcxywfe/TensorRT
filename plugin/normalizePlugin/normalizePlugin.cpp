@@ -45,28 +45,9 @@ Normalize::Normalize(const Weights* weights, int nbWeights, bool acrossSpatial, 
     cublasCreate(&mCublas);
 }
 
-Normalize::Normalize(
-    const Weights* weights, int nbWeights, bool acrossSpatial, bool channelShared, float eps, int C, int H, int W)
-    : acrossSpatial(acrossSpatial)
-    , channelShared(channelShared)
-    , eps(eps)
-    , C(C)
-    , H(H)
-    , W(W)
-{
-    mNbWeights = nbWeights;
-    ASSERT(nbWeights == 1);
-    ASSERT(weights[0].count >= 1);
-    mWeights = copyToDevice(weights[0].values, weights[0].count);
-    cublasCreate(&mCublas);
-}
-
 Normalize::Normalize(const void* buffer, size_t length)
 {
     const char *d = reinterpret_cast<const char*>(buffer), *a = d;
-    C = read<int>(d);
-    H = read<int>(d);
-    W = read<int>(d);
     acrossSpatial = read<bool>(d);
     channelShared = read<bool>(d);
     eps = read<float>(d);
@@ -83,12 +64,18 @@ int Normalize::getNbOutputs() const
     return 1;
 }
 
-Dims Normalize::getOutputDimensions(int index, const Dims* inputs, int nbInputDims)
+DimsExprs Normalize::getOutputDimensions(int index, const DimsExprs* inputs, int nbInputDims, IExprBuilder& exprBuilder)
 {
     ASSERT(nbInputDims == 1);
     ASSERT(index == 0);
-    ASSERT(inputs[0].nbDims == 3);
-    return DimsCHW(inputs[0].d[0], inputs[0].d[1], inputs[0].d[2]);
+    ASSERT(inputs[0].nbDims == 4);
+    nvinfer1::DimsExprs output;
+    output.nbDims = 4;
+    output.d[0] = inputs[0].d[0];
+    output.d[1] = inputs[0].d[1];
+    output.d[2] = inputs[0].d[2];
+    output.d[3] = inputs[0].d[3];
+    return output;
 }
 
 int Normalize::initialize()
@@ -101,16 +88,23 @@ void Normalize::terminate()
     CUBLASASSERT(cublasDestroy(mCublas));
 }
 
-size_t Normalize::getWorkspaceSize(int maxBatchSize) const
+size_t Normalize::getWorkspaceSize(const nvinfer1::PluginTensorDesc* inputs, int nbInputs,
+    const nvinfer1::PluginTensorDesc* outputs, int nbOutputs) const
 {
-    return normalizePluginWorkspaceSize(acrossSpatial, C, H, W);
+    auto&& dims = inputs[0].dims;
+    return normalizePluginWorkspaceSize(acrossSpatial, dims.d[1], dims.d[2], dims.d[3]);
 }
 
-int Normalize::enqueue(int batchSize, const void* const* inputs, void** outputs, void* workspace, cudaStream_t stream)
+int Normalize::enqueue(const nvinfer1::PluginTensorDesc* inputDesc, const nvinfer1::PluginTensorDesc* outputDesc,
+        const void* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream)
 {
     const void* inputData = inputs[0];
+    int B = inputDesc[0].dims.d[1];
+    int C = inputDesc[0].dims.d[1];
+    int H = inputDesc[0].dims.d[2];
+    int W = inputDesc[0].dims.d[3];
     void* outputData = outputs[0];
-    pluginStatus_t status = normalizeInference(stream, mCublas, acrossSpatial, channelShared, batchSize, C, H, W, eps,
+    pluginStatus_t status = normalizeInference(stream, mCublas, acrossSpatial, channelShared, B, C, H, W, eps,
         reinterpret_cast<const float*>(mWeights.values), inputData, outputData, workspace);
     ASSERT(status == STATUS_SUCCESS);
     return 0;
@@ -118,16 +112,13 @@ int Normalize::enqueue(int batchSize, const void* const* inputs, void** outputs,
 
 size_t Normalize::getSerializationSize() const
 {
-    // C,H,W, acrossSpatial,channelShared, eps, mWeights.count,mWeights.values
-    return sizeof(int) * 3 + sizeof(bool) * 2 + sizeof(float) + sizeof(int) + mWeights.count * sizeof(float);
+    // acrossSpatial,channelShared, eps, mWeights.count,mWeights.values
+    return sizeof(bool) * 2 + sizeof(float) + sizeof(int) + mWeights.count * sizeof(float);
 }
 
 void Normalize::serialize(void* buffer) const
 {
     char *d = reinterpret_cast<char*>(buffer), *a = d;
-    write(d, C);
-    write(d, H);
-    write(d, W);
     write(d, acrossSpatial);
     write(d, channelShared);
     write(d, eps);
@@ -137,9 +128,11 @@ void Normalize::serialize(void* buffer) const
     ASSERT(d == a + getSerializationSize());
 }
 
-bool Normalize::supportsFormat(DataType type, PluginFormat format) const
+bool Normalize::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs)
 {
-    return (type == DataType::kFLOAT && format == PluginFormat::kNCHW);
+    return (inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::PluginFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
 }
 
 Weights Normalize::copyToDevice(const void* hostData, size_t count)
@@ -178,44 +171,28 @@ const char* Normalize::getPluginNamespace() const
 DataType Normalize::getOutputDataType(int index, const nvinfer1::DataType* inputTypes, int nbInputs) const
 {
     ASSERT(index == 0);
-    return DataType::kFLOAT;
-}
-
-// Return true if output tensor is broadcast across a batch.
-bool Normalize::isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const
-{
-    return false;
-}
-
-// Return true if plugin can use input that is broadcast across batch without replication.
-bool Normalize::canBroadcastInputAcrossBatch(int inputIndex) const
-{
-    return false;
+    return inputTypes[0];
 }
 
 // Configure the layer with input and output data types.
-void Normalize::configurePlugin(const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
-    const DataType* inputTypes, const DataType* outputTypes, const bool* inputIsBroadcast,
-    const bool* outputIsBroadcast, PluginFormat floatFormat, int maxBatchSize)
+void Normalize::configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in, int nbInputs,
+        const nvinfer1::DynamicPluginTensorDesc* out, int nbOutputs)
 {
-    ASSERT(*inputTypes == DataType::kFLOAT && floatFormat == PluginFormat::kNCHW);
-    C = inputDims[0].d[0];
-    H = inputDims[0].d[1];
-    W = inputDims[0].d[2];
+    ASSERT(in[0].desc.type == DataType::kFLOAT && in[0].desc.format == PluginFormat::kNCHW);
     if (channelShared)
     {
         ASSERT(mWeights.count == 1);
     }
     else
     {
-        ASSERT(mWeights.count == C);
+        ASSERT(mWeights.count == in[0].desc.dims.d[1]);
     }
 
     ASSERT(nbInputs == 1);
     ASSERT(nbOutputs == 1);
-    ASSERT(inputDims[0].nbDims >= 1); // number of dimensions of the input tensor must be >=2
-    ASSERT(inputDims[0].d[0] == outputDims[0].d[0] && inputDims[0].d[1] == outputDims[0].d[1]
-        && inputDims[0].d[2] == outputDims[0].d[2]);
+    ASSERT(in[0].desc.dims.nbDims == 4); // number of dimensions of the input tensor must be >=2
+    ASSERT(in[0].desc.dims.d[0] == out[0].desc.dims.d[0] && in[0].desc.dims.d[1] == out[0].desc.dims.d[1]
+        && in[0].desc.dims.d[2] == out[0].desc.dims.d[2] && in[0].desc.dims.d[3] == out[0].desc.dims.d[3]);
 }
 
 // Attach the plugin object to an execution context and grant the plugin the access to some context resource.
@@ -242,10 +219,10 @@ void Normalize::destroy()
 }
 
 // Clone the plugin
-IPluginV2Ext* Normalize::clone() const
+IPluginV2DynamicExt* Normalize::clone() const
 {
     // Create a new instance
-    IPluginV2Ext* plugin = new Normalize(&mWeights, mNbWeights, acrossSpatial, channelShared, eps, C, H, W);
+    IPluginV2DynamicExt* plugin = new Normalize(&mWeights, mNbWeights, acrossSpatial, channelShared, eps);
 
     // Set the namespace
     plugin->setPluginNamespace(mPluginNamespace);
