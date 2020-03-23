@@ -634,7 +634,7 @@ const IBlobNameToTensor* CaffeParser::parse(INetworkDefinition& network,
                         std::cout << "Warning, setting batch size to 1. Update the dimension after parsing due to "
                                      "using explicit batch size."
                                   << std::endl;
-                        d = DimsNCHW{1, (int) shape.dim().Get(1), -1, -1};
+                        d = DimsNCHW{-1, (int) shape.dim().Get(1), -1, -1};
                     }
                     ITensor* tensor = network.addInput(layerMsg.top(i).c_str(), DataType::kFLOAT, d);
                     (*mBlobNameToTensor)[layerMsg.top().Get(i)] = tensor;
@@ -700,12 +700,36 @@ const IBlobNameToTensor* CaffeParser::parse(INetworkDefinition& network,
                     auto slice = network.addSlice(*((*mBlobNameToTensor)[layerMsg.bottom(0)]), start, size, stride);
                     (*mBlobNameToTensor)[layerMsg.top(i)] = slice->getOutput(0);
                 }
-            } else {  // dims == 4
+            } else {  // dims == 4 dynamic shape
                 for (int i = 0; i < slice_points.size() - 1; ++i) {
-                    nvinfer1::Dims4 start{0, 0, 0, 0}, size{bottom_dims.d[0], bottom_dims.d[1], bottom_dims.d[2], bottom_dims.d[3]}, stride{1, 1, 1, 1};
+                    nvinfer1::Dims4 start{0, 0, 0, 0}, size{1, bottom_dims.d[1], 490, 490}, stride{1, 1, 1, 1};
                     start.d[axis] = slice_points[i];
                     size.d[axis] = slice_points[i + 1] - slice_points[i];
                     auto slice = network.addSlice(*((*mBlobNameToTensor)[layerMsg.bottom(0)]), start, size, stride);
+
+                    int* start_value = allocMemory<int>(4);
+                    start_value[0] = 0;
+                    start_value[1] = slice_points[i];
+                    start_value[2] = 0;
+                    start_value[3] = 0;
+                    Dims start_dims; start_dims.nbDims = 1; start_dims.d[0] = 4;
+                    Weights start_weights{DataType::kINT32, start_value, int64_t(4)};
+                    auto start_const = network.addConstant(start_dims, start_weights);
+                    slice->setInput(1, *start_const->getOutput(0));
+
+                    int* size_value = allocMemory<int>(4);
+                    size_value[0] = 0;
+                    size_value[1] = bottom_dims.d[1] - (slice_points[i + 1] - slice_points[i]);
+                    size_value[2] = 0;
+                    size_value[3] = 0;
+                    Dims size_dims; size_dims.nbDims = 1; size_dims.d[0] = 4;
+                    Weights size_weights{DataType::kINT32, size_value, int64_t(4)};
+                    auto size_const = network.addConstant(size_dims, size_weights);
+                    auto size_shape = network.addShape(*slice->getInput(0));
+                    auto size_const2 = network.addElementWise(*size_shape->getOutput(0), *size_const->getOutput(0), ElementWiseOperation::kSUB);
+                    slice->setInput(2, *size_const2->getOutput(0));
+
+
                     (*mBlobNameToTensor)[layerMsg.top(i)] = slice->getOutput(0);
                 }
             }
