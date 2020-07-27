@@ -210,4 +210,26 @@ int proposalInference_gpu(cudaStream_t stream, const void* rpn_prob, const void*
 
 size_t _get_workspace_size(int N, int anc_size_num, int anc_ratio_num, int H, int W, int nmsMaxOut);
 
+void dcnFloat2half(const float* input, __half* output, int data_size);
+
+int get_greatest_divisor_below_bound(int n, int bound);
+
+template<typename T>
+void DeformConv2d_forward(
+    const T* input,
+    const T* offset,
+    const T* mask,
+    const T* weight,
+    const T* bias,
+    T* workspace,
+    T* output,
+    const int batch_sz, const int in_channels, const int in_h, const int in_w,
+    const int out_channels, const int weight_h, const int weight_w,
+    std::pair<int, int> stride,
+    std::pair<int, int> pad,
+    std::pair<int, int> dilation,
+    int groups, int deformable_groups, int im2col_step,
+    cudaStream_t stream,
+    cublasHandle_t handle);
+
 #endif

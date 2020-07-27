@@ -48,6 +48,7 @@ set(PLUGIN_LISTS
     resizeNearestPlugin
     specialSlicePlugin
     instanceNormalizationPlugin
+    modulatedDeformableConv2dPlugin
     )
 
 # Add BERT sources if ${BERT_GENCODES} was populated
