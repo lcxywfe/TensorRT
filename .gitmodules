@@ -1,6 +1,6 @@
 [submodule "parsers/onnx"]
 	path = parsers/onnx
-	url = https://github.com/onnx/onnx-tensorrt.git
+	url = https://github.com/lcxywfe/onnx-tensorrt.git
 	branch = 7.0
 [submodule "third_party/protobuf"]
 	path = third_party/protobuf
